@@ -7,7 +7,7 @@ const BLOCKED_TOOLS = new Set(["bash", "edit", "write", "grep", "find", "ls"]);
 
 let enabled = true;
 let toolsBeforeChatMode: string[] | undefined;
-let allowedFiles = new Set<string>();
+let allowedFilesForCurrentPrompt = new Set<string>();
 
 function extractAtFileReferences(text: string): string[] {
   const matches = text.matchAll(/(?:^|\s)@([^\s`'"<>|;&]+)(?=$|\s)/g);
@@ -42,12 +42,12 @@ function updateUi(ctx: ExtensionContext): void {
 
   ctx.ui.setStatus("chat-mode", ctx.ui.theme.fg("accent", "chat"));
 
-  if (allowedFiles.size === 0) {
-    ctx.ui.setWidget("chat-mode-files", [ctx.ui.theme.fg("muted", "Chat mode: no files allowed")]);
+  if (allowedFilesForCurrentPrompt.size === 0) {
+    ctx.ui.setWidget("chat-mode-files", [ctx.ui.theme.fg("muted", "Chat mode: no files allowed for current prompt")]);
   } else {
     ctx.ui.setWidget("chat-mode-files", [
-      ctx.ui.theme.fg("muted", "Chat mode allowed files:"),
-      ...[...allowedFiles].map((file) => `• ${displayPath(ctx.cwd, file)}`),
+      ctx.ui.theme.fg("muted", "Chat mode files allowed for current prompt:"),
+      ...[...allowedFilesForCurrentPrompt].map((file) => `• ${displayPath(ctx.cwd, file)}`),
     ]);
   }
 }
@@ -56,7 +56,7 @@ function addAllowedFiles(ctx: ExtensionContext, paths: string[]): number {
   const normalizedPaths = paths.map((s) => s.trim()).filter(Boolean);
 
   for (const path of normalizedPaths) {
-    allowedFiles.add(normalizeForCwd(ctx.cwd, path));
+    allowedFilesForCurrentPrompt.add(normalizeForCwd(ctx.cwd, path));
   }
 
   return normalizedPaths.length;
@@ -71,6 +71,7 @@ export default function chatMode(pi: ExtensionAPI): void {
 
   pi.on("session_start", (_event, ctx) => {
     enabled = Boolean(pi.getFlag("chat"));
+    allowedFilesForCurrentPrompt = new Set();
     if (enabled) setChatTools(pi);
     updateUi(ctx);
   });
@@ -93,6 +94,7 @@ export default function chatMode(pi: ExtensionAPI): void {
   pi.registerCommand("chat-allow", {
     description: "Allow chat mode to read one or more explicit files",
     handler: async (args, ctx) => {
+      allowedFilesForCurrentPrompt = new Set();
       const count = addAllowedFiles(ctx, args.split(/\s+/));
       updateUi(ctx);
       ctx.ui.notify(count === 0 ? "Usage: /chat-allow <file> [file...]" : `Allowed ${count} file(s) for chat mode.`, "info");
@@ -102,7 +104,7 @@ export default function chatMode(pi: ExtensionAPI): void {
   pi.registerCommand("chat-clear", {
     description: "Clear chat mode's allowed file list",
     handler: async (_args, ctx) => {
-      allowedFiles = new Set();
+      allowedFilesForCurrentPrompt = new Set();
       updateUi(ctx);
       ctx.ui.notify("Chat mode file allowlist cleared.", "info");
     },
@@ -112,22 +114,23 @@ export default function chatMode(pi: ExtensionAPI): void {
     if (!enabled) return { action: "continue" };
 
     const references = extractAtFileReferences(event.text);
-    if (references.length === 0) return { action: "continue" };
+    allowedFilesForCurrentPrompt = new Set();
 
-    addAllowedFiles(ctx, references);
+    if (references.length > 0) {
+      addAllowedFiles(ctx, references);
+    }
+
     updateUi(ctx);
-
-    return {
-      action: "transform",
-      text: `${event.text}\n\n[Chat mode note: The student explicitly referenced these files, so they may be read if needed: ${references.join(", ")}]`,
-    };
+    return { action: "continue" };
   });
 
-  pi.on("before_agent_start", async (event) => {
+  pi.on("before_agent_start", async (event, ctx) => {
     if (!enabled) return;
 
+    const allowedList = [...allowedFilesForCurrentPrompt].map((file) => `- ${displayPath(ctx.cwd, file)}`).join("\n") || "- none";
+
     return {
-      systemPrompt: `${event.systemPrompt}\n\nClassroom chat mode is active.\n- Behave like a tutoring chat assistant, not an autonomous coding agent.\n- Do not inspect the project, search the repository, run shell commands, edit files, or write files.\n- You may only read files that the user explicitly references with @path, explicitly allows with /chat-allow, or explicitly provides as pasted content.\n- If you need to see code, ask the student to paste the relevant snippet or reference the exact file with @path.\n- Help students understand errors, debug symptoms they describe, and suggest changes they should make themselves.\n- Prefer explanations, questions, hypotheses, and small suggested snippets over performing actions.`,
+      systemPrompt: `${event.systemPrompt}\n\nClassroom chat mode is active.\n- Behave like a tutoring chat assistant, not an autonomous coding agent.\n- Do not inspect the project, search the repository, run shell commands, edit files, or write files.\n- You may only read files that the user explicitly references with @path, explicitly allows with /chat-allow, or explicitly provides as pasted content.\n- If you need to see code, ask the student to paste the relevant snippet or reference the exact file with @path.\n- Help students understand errors, debug symptoms they describe, and suggest changes they should make themselves.\n- Prefer explanations, questions, hypotheses, and small suggested snippets over performing actions.\n\nFiles allowed for reading for this user prompt only:\n${allowedList}`,
     };
   });
 
@@ -143,7 +146,7 @@ export default function chatMode(pi: ExtensionAPI): void {
 
     if (isToolCallEventType("read", event)) {
       const requested = normalizeForCwd(ctx.cwd, event.input.path);
-      if (!allowedFiles.has(requested)) {
+      if (!allowedFilesForCurrentPrompt.has(requested)) {
         return {
           block: true,
           reason: `Chat mode blocks reading ${displayPath(ctx.cwd, requested)} because it was not explicitly allowed. Ask the student to run /chat-allow ${displayPath(ctx.cwd, requested)} or paste the relevant snippet.`,
