@@ -6,9 +6,14 @@
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"
   },
+  "dependencies": {
+    "pi-image-paste": "^1.0.0"
+  },
+  "bundledDependencies": ["pi-image-paste"],
   "pi": {
     "extensions": [
-      "./extensions/chat-mode.ts"
+      "./extensions/chat-mode.ts",
+      "./node_modules/pi-image-paste/src/index.ts"
     ]
   }
 }

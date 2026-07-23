@@ -26,6 +26,7 @@ RUN npm install -g --ignore-scripts @earendil-works/pi-coding-agent
 WORKDIR /opt/pifriction
 COPY package.json README.md ./
 COPY extensions ./extensions
+RUN npm install --omit=dev
 COPY docker-entrypoint.sh /usr/local/bin/pifriction-entrypoint
 RUN chmod +x /usr/local/bin/pifriction-entrypoint
 

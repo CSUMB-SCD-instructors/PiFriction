@@ -1,5 +1,6 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
+import { existsSync, statSync } from "node:fs";
 import { isAbsolute, normalize, relative, resolve } from "node:path";
 
 const CHAT_MODE_TOOLS = ["read"];
@@ -52,14 +53,36 @@ function updateUi(ctx: ExtensionContext): void {
   }
 }
 
-function addAllowedFiles(ctx: ExtensionContext, paths: string[]): number {
-  const normalizedPaths = paths.map((s) => s.trim()).filter(Boolean);
+function allowFilesForCurrentPrompt(ctx: ExtensionContext, paths: string[]): { allowed: string[]; rejected: string[] } {
+  const allowed: string[] = [];
+  const rejected: string[] = [];
 
-  for (const path of normalizedPaths) {
-    allowedFilesForCurrentPrompt.add(normalizeForCwd(ctx.cwd, path));
+  for (const rawPath of paths.map((s) => s.trim()).filter(Boolean)) {
+    const path = normalizeForCwd(ctx.cwd, rawPath);
+
+    if (!existsSync(path) || !statSync(path).isFile()) {
+      rejected.push(rawPath);
+      continue;
+    }
+
+    allowedFilesForCurrentPrompt.add(path);
+    allowed.push(rawPath);
   }
 
-  return normalizedPaths.length;
+  return { allowed, rejected };
+}
+
+function chatHelpText(): string {
+  return `PiFriction chat mode is active.
+
+How to use it:
+- Ask questions normally, like you would in chat.
+- Paste error messages or terminal output directly when possible.
+- Reference a specific file with @path/to/file when you want Pi to look at it.
+- Pi can read only files explicitly mentioned in your current message.
+- Pi will not search your project, run commands, edit files, or write files.
+- Pi will suggest code changes for you to make yourself.
+- Screenshots are useful, but paste exact error text too when details matter.`;
 }
 
 export default function chatMode(pi: ExtensionAPI): void {
@@ -74,6 +97,19 @@ export default function chatMode(pi: ExtensionAPI): void {
     allowedFilesForCurrentPrompt = new Set();
     if (enabled) setChatTools(pi);
     updateUi(ctx);
+
+    if (ctx.mode === "tui") {
+      ctx.ui.setHeader((_tui, theme) => ({
+        render() {
+          return [
+            theme.fg("accent", theme.bold("PiFriction chat mode")),
+            theme.fg("muted", "Ask questions normally. Use @file when you want Pi to read one specific file."),
+            theme.fg("muted", "Pi will not search, run commands, edit, or write files. Type /chat-help for help."),
+          ];
+        },
+        invalidate() {},
+      }));
+    }
   });
 
   pi.registerCommand("chat", {
@@ -91,13 +127,32 @@ export default function chatMode(pi: ExtensionAPI): void {
     },
   });
 
+  pi.registerCommand("chat-help", {
+    description: "Show PiFriction chat mode help",
+    handler: async (_args, ctx) => {
+      ctx.ui.notify(chatHelpText(), "info");
+    },
+  });
+
   pi.registerCommand("chat-allow", {
-    description: "Allow chat mode to read one or more explicit files",
+    description: "Allow chat mode to read one or more explicit files for the current prompt",
     handler: async (args, ctx) => {
       allowedFilesForCurrentPrompt = new Set();
-      const count = addAllowedFiles(ctx, args.split(/\s+/));
+      const result = allowFilesForCurrentPrompt(ctx, args.split(/\s+/));
       updateUi(ctx);
-      ctx.ui.notify(count === 0 ? "Usage: /chat-allow <file> [file...]" : `Allowed ${count} file(s) for chat mode.`, "info");
+
+      if (result.allowed.length === 0) {
+        ctx.ui.notify(
+          result.rejected.length > 0
+            ? `No files allowed. These paths do not exist or are not files: ${result.rejected.join(", ")}`
+            : "Usage: /chat-allow <file> [file...]",
+          "warning",
+        );
+        return;
+      }
+
+      const suffix = result.rejected.length > 0 ? ` Rejected non-files: ${result.rejected.join(", ")}` : "";
+      ctx.ui.notify(`Allowed ${result.allowed.length} file(s) for the current prompt.${suffix}`, "info");
     },
   });
 
@@ -117,7 +172,13 @@ export default function chatMode(pi: ExtensionAPI): void {
     allowedFilesForCurrentPrompt = new Set();
 
     if (references.length > 0) {
-      addAllowedFiles(ctx, references);
+      const result = allowFilesForCurrentPrompt(ctx, references);
+      if (result.rejected.length > 0) {
+        ctx.ui.notify(
+          `Chat mode ignored @ references that are not readable files: ${result.rejected.join(", ")}`,
+          "warning",
+        );
+      }
     }
 
     updateUi(ctx);
@@ -128,9 +189,12 @@ export default function chatMode(pi: ExtensionAPI): void {
     if (!enabled) return;
 
     const allowedList = [...allowedFilesForCurrentPrompt].map((file) => `- ${displayPath(ctx.cwd, file)}`).join("\n") || "- none";
+    const imageGuidance = event.images && event.images.length > 0
+      ? "\n- The student attached image(s). Use them as user-provided context, but ask for pasted text when exact code, commands, or error messages matter."
+      : "";
 
     return {
-      systemPrompt: `${event.systemPrompt}\n\nClassroom chat mode is active.\n- Behave like a tutoring chat assistant, not an autonomous coding agent.\n- Do not inspect the project, search the repository, run shell commands, edit files, or write files.\n- You may only read files that the user explicitly references with @path, explicitly allows with /chat-allow, or explicitly provides as pasted content.\n- If you need to see code, ask the student to paste the relevant snippet or reference the exact file with @path.\n- Help students understand errors, debug symptoms they describe, and suggest changes they should make themselves.\n- Prefer explanations, questions, hypotheses, and small suggested snippets over performing actions.\n\nFiles allowed for reading for this user prompt only:\n${allowedList}`,
+      systemPrompt: `${event.systemPrompt}\n\nClassroom chat mode is active.\n- Behave like a tutoring chat assistant, not an autonomous coding agent.\n- Do not inspect the project, search the repository, run shell commands, edit files, or write files.\n- You may only read files that the user explicitly references with @path, explicitly allows with /chat-allow, or explicitly provides as pasted content.\n- If you need to see code, ask the student to paste the relevant snippet or reference the exact file with @path.\n- Help students understand errors, debug symptoms they describe, and suggest changes they should make themselves.\n- Prefer explanations, questions, hypotheses, and small suggested snippets over performing actions.${imageGuidance}\n\nFiles allowed for reading for this user prompt only:\n${allowedList}`,
     };
   });
 
