@@ -59,7 +59,7 @@ function setChatHeader(ctx: ExtensionContext): void {
       return [
         theme.fg("accent", theme.bold("PiFriction chat mode")),
         theme.fg("muted", "Ask questions normally. Use @file when you want Pi to read one specific file."),
-        theme.fg("muted", "Pi will not search, run commands, edit, or write files. Type /chat-help for help."),
+        theme.fg("muted", "Pi will not search, run commands, edit, or write files. /chat-help or /pifriction-help"),
       ];
     },
     invalidate() {},
@@ -73,7 +73,7 @@ function updateUi(ctx: ExtensionContext): void {
     return;
   }
 
-  ctx.ui.setStatus("chat-mode", ctx.ui.theme.fg("accent", "chat"));
+  ctx.ui.setStatus("chat-mode", ctx.ui.theme.fg("accent", "CHAT · @files only · no edits"));
 
   if (allowedFilesForCurrentPrompt.size === 0) {
     ctx.ui.setWidget("chat-mode-files", [ctx.ui.theme.fg("muted", "Chat mode: no files allowed for current prompt")]);

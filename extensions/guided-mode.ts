@@ -68,7 +68,7 @@ function setGuidedHeader(ctx: ExtensionContext): void {
       return [
         theme.fg("accent", theme.bold("PiFriction guided coding mode")),
         theme.fg("muted", "Pi will work on one small function or implementation unit at a time."),
-        theme.fg("muted", "Explain that unit and name a risk or alternative to unlock implementation. /guided-help for help."),
+        theme.fg("muted", "Explain that unit and name a risk or alternative to unlock implementation. /guided-help or /pifriction-help"),
       ];
     },
     invalidate() {},
@@ -83,12 +83,12 @@ function updateUi(ctx: ExtensionContext): void {
   }
 
   const label: Record<GuidedPhase, string> = {
-    idle: "guided: ready",
-    proposing: "guided: planning",
-    "awaiting-explanation": "guided: explain-back required",
-    assessing: "guided: checking explanation",
-    implementing: "guided: implementing",
-    complete: "guided: complete",
+    idle: "GUIDED · ready",
+    proposing: "GUIDED · planning one unit",
+    "awaiting-explanation": "GUIDED · explain-back required",
+    assessing: "GUIDED · checking explanation",
+    implementing: "GUIDED · implementing one unit",
+    complete: "GUIDED · unit complete",
   };
 
   ctx.ui.setStatus("guided-mode", ctx.ui.theme.fg("accent", label[phase]));

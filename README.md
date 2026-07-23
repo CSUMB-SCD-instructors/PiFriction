@@ -17,10 +17,13 @@ Classroom extensions for Pi.
 Commands:
 
 ```text
-/chat                 Toggle chat mode
+/pifriction-help      Show all PiFriction modes and commands
+/chat                 Toggle tutoring-only chat mode
 /chat-help            Show student-facing chat mode help
 /chat-allow <file...> Allow specific files to be read for the current prompt
 /chat-clear           Clear current-prompt allowed files
+/guided               Toggle guided coding mode
+/guided-help          Show guided coding mode help
 ```
 
 Example:
