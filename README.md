@@ -52,7 +52,15 @@ pi -e ./extensions/chat-mode.ts
 
 ## Docker image
 
-Build:
+For local development, the easiest launcher is:
+
+```bash
+./run-pifriction.sh "$HOME/scratch/CST334"
+```
+
+It optionally loads `ANTHROPIC_API_KEY` from a repository-root `.env` file, builds the image, and mounts the supplied directory at `/data`. After Pi starts, its TUI asks whether to use chat or guided coding mode. Give the script a different project directory as its first argument, or omit the argument to use `$HOME/scratch/CST334`.
+
+Build manually:
 
 ```bash
 docker build -t pifriction .

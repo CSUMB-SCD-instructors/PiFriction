@@ -120,11 +120,15 @@ function setEnabled(next: boolean, ctx: ExtensionContext, pi: ExtensionAPI): voi
 }
 
 export default function guidedMode(pi: ExtensionAPI): void {
+  pi.registerFlag("guided", {
+    description: "Start in guided coding mode",
+    type: "boolean",
+    default: false,
+  });
+
   pi.events.on("guided:set-enabled", (data: { enabled?: boolean }) => {
-    if (activeContext && !data.enabled && enabled) {
-      enabled = false;
-      phase = "idle";
-      updateUi(activeContext);
+    if (activeContext && Boolean(data.enabled) !== enabled) {
+      setEnabled(Boolean(data.enabled), activeContext, pi);
     }
   });
 
@@ -170,9 +174,14 @@ export default function guidedMode(pi: ExtensionAPI): void {
 
   pi.on("session_start", (_event, ctx) => {
     activeContext = ctx;
-    enabled = false;
     phase = "idle";
-    updateUi(ctx);
+
+    if (pi.getFlag("guided")) {
+      setEnabled(true, ctx, pi);
+    } else {
+      enabled = false;
+      updateUi(ctx);
+    }
   });
 
   pi.on("input", async (event, ctx) => {
