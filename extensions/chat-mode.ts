@@ -9,6 +9,7 @@ const BLOCKED_TOOLS = new Set(["bash", "edit", "write", "grep", "find", "ls"]);
 let enabled = true;
 let toolsBeforeChatMode: string[] | undefined;
 let allowedFilesForCurrentPrompt = new Set<string>();
+let activeContext: ExtensionContext | undefined;
 
 function extractAtFileReferences(text: string): string[] {
   const matches = text.matchAll(/(?:^|\s)@([^\s`'"<>|;&]+)(?=$|\s)/g);
@@ -32,6 +33,37 @@ function setChatTools(pi: ExtensionAPI): void {
 function restoreTools(pi: ExtensionAPI): void {
   pi.setActiveTools(toolsBeforeChatMode ?? ["read", "bash", "edit", "write"]);
   toolsBeforeChatMode = undefined;
+}
+
+function setEnabled(next: boolean, ctx: ExtensionContext, pi: ExtensionAPI, notify = true): void {
+  enabled = next;
+  allowedFilesForCurrentPrompt = new Set();
+
+  if (enabled) {
+    setChatTools(pi);
+    if (notify) ctx.ui.notify("Chat mode enabled. Only explicitly referenced files can be read.", "info");
+  } else {
+    restoreTools(pi);
+    if (notify) ctx.ui.notify("Chat mode disabled.", "warning");
+  }
+
+  if (enabled) setChatHeader(ctx);
+  updateUi(ctx);
+}
+
+function setChatHeader(ctx: ExtensionContext): void {
+  if (ctx.mode !== "tui") return;
+
+  ctx.ui.setHeader((_tui, theme) => ({
+    render() {
+      return [
+        theme.fg("accent", theme.bold("PiFriction chat mode")),
+        theme.fg("muted", "Ask questions normally. Use @file when you want Pi to read one specific file."),
+        theme.fg("muted", "Pi will not search, run commands, edit, or write files. Type /chat-help for help."),
+      ];
+    },
+    invalidate() {},
+  }));
 }
 
 function updateUi(ctx: ExtensionContext): void {
@@ -93,37 +125,24 @@ export default function chatMode(pi: ExtensionAPI): void {
   });
 
   pi.on("session_start", (_event, ctx) => {
+    activeContext = ctx;
     enabled = Boolean(pi.getFlag("chat"));
     allowedFilesForCurrentPrompt = new Set();
     if (enabled) setChatTools(pi);
     updateUi(ctx);
 
-    if (ctx.mode === "tui") {
-      ctx.ui.setHeader((_tui, theme) => ({
-        render() {
-          return [
-            theme.fg("accent", theme.bold("PiFriction chat mode")),
-            theme.fg("muted", "Ask questions normally. Use @file when you want Pi to read one specific file."),
-            theme.fg("muted", "Pi will not search, run commands, edit, or write files. Type /chat-help for help."),
-          ];
-        },
-        invalidate() {},
-      }));
-    }
+    setChatHeader(ctx);
+  });
+
+  pi.events.on("chat:set-enabled", (data: { enabled?: boolean }) => {
+    if (activeContext) setEnabled(Boolean(data.enabled), activeContext, pi, false);
   });
 
   pi.registerCommand("chat", {
     description: "Toggle classroom chat mode",
     handler: async (_args, ctx) => {
-      enabled = !enabled;
-      if (enabled) {
-        setChatTools(pi);
-        ctx.ui.notify("Chat mode enabled. Only explicitly allowed files can be read.", "info");
-      } else {
-        restoreTools(pi);
-        ctx.ui.notify("Chat mode disabled. Normal tools restored.", "warning");
-      }
-      updateUi(ctx);
+      setEnabled(!enabled, ctx, pi);
+      if (enabled) pi.events.emit("guided:set-enabled", { enabled: false });
     },
   });
 

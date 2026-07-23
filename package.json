@@ -13,6 +13,7 @@
   "pi": {
     "extensions": [
       "./extensions/chat-mode.ts",
+      "./extensions/guided-mode.ts",
       "./node_modules/pi-image-paste/src/index.ts"
     ]
   }
