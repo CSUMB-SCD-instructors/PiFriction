@@ -22,6 +22,8 @@ Commands:
 /chat-help            Show student-facing chat mode help
 /chat-allow <file...> Allow specific files to be read for the current prompt
 /chat-clear           Clear current-prompt allowed files
+/plan                 Toggle read-only project planning mode
+/plan-help            Show planning mode help
 /guided               Toggle guided coding mode
 /guided-help          Show guided coding mode help
 ```
@@ -32,6 +34,19 @@ Example:
 I have this error: ... What does it mean?
 Hey, I'm running into an issue in @src/main.py. Can you look at it for me?
 ```
+
+## Planning mode
+
+Use `/plan` for read-only, project-level exploration:
+
+1. Pi inspects the relevant architecture, data flow, and constraints.
+2. It offers 2–3 plausible approaches without calling one “recommended.” Each includes intended behavior, likely affected files/functions, a tradeoff or pitfall, and a verification strategy.
+3. The student chooses an approach and explains why it fits better than an alternative.
+4. After Pi accepts that reasoning, it transitions to `/guided`; guided mode implements the selected approach one small unit at a time.
+
+Planning mode can list directories, find files, search code, and read relevant files. It cannot run arbitrary shell commands or edit files. The editable implementation path is deliberately only `/plan` → choice/justification → `/guided` → per-unit explain-back.
+
+The project-plan and choice-assessment prompts are near the top of `extensions/plan-mode.ts` for quick tuning.
 
 ## Guided coding mode
 
@@ -90,7 +105,17 @@ docker run -it --rm \
 
 The image includes Pi plus common student/project tools: Node.js/npm, Python 3/pip/venv, git, ripgrep, fd, jq, curl, tree, zip/unzip, ssh client, and a basic editor.
 
-The entrypoint always loads this package with `pi -e /opt/pifriction`, so chat mode stays active even when students mount persistent Pi settings.
+The entrypoint always loads this package with `pi -e /opt/pifriction`, so chat mode stays active even when students mount persistent Pi settings. It defaults to `anthropic/claude-sonnet-4-5`, rather than a provider-selected Opus model. Override it for a run with:
+
+```bash
+docker run -it --rm \
+  -v "$PWD":/data \
+  -e PIFRICTION_ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+  -e PIFRICTION_MODEL="anthropic/claude-haiku-4-5" \
+  pifriction
+```
+
+An explicit final CLI model argument also wins, for example `pifriction --model anthropic/claude-sonnet-4-6`.
 
 ### Screenshots/images in Docker
 

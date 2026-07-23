@@ -20,6 +20,11 @@ fi
 
 cd /data
 
+# Sonnet is a better classroom default than an expensive frontier model. Set
+# PIFRICTION_MODEL to choose another configured Pi model; an explicit --model
+# passed to the container comes later and therefore overrides this default.
+: "${PIFRICTION_MODEL:=anthropic/claude-sonnet-4-5}"
+
 # Load this package every time without relying on mutable user settings. This
 # keeps the classroom extension active even if students mount a persistent .pi.
-exec pi -e /opt/pifriction "$@"
+exec pi -e /opt/pifriction --model "$PIFRICTION_MODEL" "$@"

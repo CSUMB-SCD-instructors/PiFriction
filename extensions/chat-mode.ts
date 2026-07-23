@@ -142,7 +142,10 @@ export default function chatMode(pi: ExtensionAPI): void {
     description: "Toggle classroom chat mode",
     handler: async (_args, ctx) => {
       setEnabled(!enabled, ctx, pi);
-      if (enabled) pi.events.emit("guided:set-enabled", { enabled: false });
+      if (enabled) {
+        pi.events.emit("guided:set-enabled", { enabled: false });
+        pi.events.emit("plan:set-enabled", { enabled: false });
+      }
     },
   });
 
