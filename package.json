@@ -1,0 +1,14 @@
+{
+  "name": "pi-friction-classroom",
+  "version": "0.1.0",
+  "description": "Classroom extensions for Pi",
+  "keywords": ["pi-package"],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions/chat-mode.ts"
+    ]
+  }
+}
