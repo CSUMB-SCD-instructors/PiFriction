@@ -35,7 +35,7 @@ Hey, I'm running into an issue in @src/main.py. Can you look at it for me?
 Use `/guided` to enter the first guided-coding beta:
 
 1. Pi can inspect an explicitly requested coding task but cannot change files.
-2. It chooses **one small implementation unit**—normally one function—and provides a concise change outline: likely file, intended operations, and a verification approach. It does not provide a full rationale or patch.
+2. It chooses **one small implementation unit**—normally one function—and provides a concise change outline: likely file, intended operations, and a verification approach. For a new codebase it should start with an easy, self-contained foundational function rather than a difficult shared dependency. It does not provide a full rationale or patch.
 3. The student explains that unit's purpose and mechanism in their own words, and identifies a unit-specific risk, edge case, or alternative.
 4. Pi asks a targeted follow-up if the explanation is insufficient. If the student says a relevant part is confusing, Pi must teach that concept and keep edits locked.
 5. Once it accepts the explanation, it unlocks edits for that one agreed unit only. The next function requires another guided cycle.

@@ -15,7 +15,11 @@ const EDIT_TOOLS = new Set(["edit", "write"]);
 const PROPOSAL_INSTRUCTIONS = `
 First inspect only the code and files needed to understand the student's request. Do not edit yet.
 
-Choose ONE SMALL IMPLEMENTATION UNIT. This should normally be one function or one tightly coupled helper plus its direct caller; never an entire assignment, feature, or list of functions. If the request contains many TODOs, choose a sensible first unit and say that later units will require separate explain-backs.
+Choose ONE SMALL IMPLEMENTATION UNIT. This should normally be one function or one tightly coupled helper plus its direct caller; never an entire assignment, feature, or list of functions.
+
+When this is a new codebase, assignment, or guided-mode session, prioritize an easy, self-contained, low-risk function that teaches the local data model (for example, a simple accessor, predicate, constructor, or clear operation). Do NOT choose a difficult shared helper merely because many later functions depend on it. Broad dependency is usually a reason to defer a unit until the student has learned simpler foundations. Prefer a sequence that builds confidence and vocabulary before memory management, resizing, pointer ownership, overlap-sensitive copies, or complex index manipulation.
+
+If the request contains many TODOs, briefly state that you are starting with a small foundational unit and that later units will require separate explain-backs. If two or three equally approachable starting units exist, offer their names and one-line learning focus, then ask the student which they prefer before producing an outline. Honor a student's stated instructor recommendation or preferred starting unit unless it is clearly unsafe or impossible.
 
 Give a compact CHANGE OUTLINE for that one unit only, not a worked solution or full rationale:
 - the exact function(s) or small unit being considered
