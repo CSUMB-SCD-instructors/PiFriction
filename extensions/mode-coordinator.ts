@@ -8,6 +8,13 @@ type ModeRequest = { mode: string; source?: ModeSource };
 type ModeActivation = { mode: PiFrictionMode; previousMode?: PiFrictionMode; source: ModeSource; locked: boolean };
 type ModeStateQuery = { mode?: PiFrictionMode; locked?: boolean; assignedMode?: PiFrictionMode };
 
+const MODE_CHOICES: Array<{ mode: PiFrictionMode; label: string }> = [
+  { mode: "chat", label: "Chat — tutoring; @mention files to let Pi read them; no commands or edits" },
+  { mode: "plan", label: "Planning — inspect the project and compare approaches; no edits" },
+  { mode: "guided", label: "Guided coding — explain one small unit before Pi edits it" },
+  { mode: "detective", label: "Change Detective — review every proposed concrete edit" },
+];
+
 function isMode(value: string): value is PiFrictionMode {
   return (PIFRICTION_MODES as readonly string[]).includes(value);
 }
@@ -65,6 +72,25 @@ export default function modeCoordinator(pi: ExtensionAPI): void {
     assignedMode = policy.mode;
     locked = Boolean(policy.locked);
     activate(policy.mode, policy.source ?? "remote-policy");
+  });
+
+  pi.registerCommand("mode", {
+    description: "Choose a PiFriction mode",
+    handler: async (_args, ctx) => {
+      if (locked) {
+        ctx.ui.notify(`This session is locked to ${assignedMode ?? activeMode} mode.`, "warning");
+        return;
+      }
+
+      const choices = MODE_CHOICES.map(({ mode, label }) =>
+        mode === activeMode ? `● ${mode}: ${label} (current)` : `○ ${mode}: ${label}`,
+      );
+      const choice = await ctx.ui.select("Choose a PiFriction mode", choices);
+      if (!choice) return;
+
+      const selected = MODE_CHOICES.find(({ mode }) => choice.includes(`${mode}:`));
+      if (selected) pi.events.emit("pifriction:mode:request", { mode: selected.mode, source: "student" });
+    },
   });
 
   pi.on("session_start", (_event, ctx) => {

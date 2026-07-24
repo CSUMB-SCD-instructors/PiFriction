@@ -18,7 +18,8 @@ Commands:
 
 ```text
 /pifriction-help      Show all PiFriction modes and commands
-/chat                 Toggle tutoring-only chat mode
+/mode                 Choose among available PiFriction modes
+/chat                 Switch to tutoring-only chat mode
 /chat-help            Show student-facing chat mode help
 /chat-allow <file...> Allow specific files to be read for the current prompt
 /chat-clear           Clear current-prompt allowed files
