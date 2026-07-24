@@ -118,13 +118,36 @@ docker run -it --rm \
 
 The image includes Pi plus common student/project tools: Node.js/npm, Python 3/pip/venv, git, ripgrep, fd, jq, curl, tree, zip/unzip, ssh client, and a basic editor.
 
-The entrypoint always loads this package with `pi -e /opt/pifriction`, so chat mode stays active even when students mount persistent Pi settings. It defaults to `anthropic/claude-sonnet-4-5`, rather than a provider-selected Opus model. Override it for a run with:
+The entrypoint always loads this package with `pi -e /opt/pifriction`, so chat mode stays active even when students mount persistent Pi settings.
+
+## Model/provider selection
+
+The image accepts either provider's normal environment variable or a PiFriction-prefixed equivalent:
+
+```text
+OPENROUTER_API_KEY / PIFRICTION_OPENROUTER_API_KEY
+ANTHROPIC_API_KEY  / PIFRICTION_ANTHROPIC_API_KEY
+```
+
+If both are available, **OpenRouter is preferred** and the image defaults to:
+
+```text
+openrouter/~anthropic/claude-sonnet-latest
+```
+
+If only Anthropic is available, it defaults to:
+
+```text
+anthropic/claude-sonnet-4-5
+```
+
+Override the default model for a run with `PIFRICTION_MODEL`:
 
 ```bash
 docker run -it --rm \
   -v "$PWD":/data \
-  -e PIFRICTION_ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
-  -e PIFRICTION_MODEL="anthropic/claude-haiku-4-5" \
+  -e PIFRICTION_OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
+  -e PIFRICTION_MODEL="openrouter/~anthropic/claude-haiku-latest" \
   pifriction
 ```
 

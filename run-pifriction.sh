@@ -20,9 +20,13 @@ if [[ -z "${PIFRICTION_ANTHROPIC_API_KEY:-}" && -n "${ANTHROPIC_API_KEY:-}" ]]; 
   export PIFRICTION_ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY"
 fi
 
-if [[ -z "${PIFRICTION_ANTHROPIC_API_KEY:-}" ]]; then
-  echo "Missing ANTHROPIC_API_KEY (or PIFRICTION_ANTHROPIC_API_KEY)." >&2
-  echo "Export it or add it to .env, then run this script again." >&2
+if [[ -z "${PIFRICTION_OPENROUTER_API_KEY:-}" && -n "${OPENROUTER_API_KEY:-}" ]]; then
+  export PIFRICTION_OPENROUTER_API_KEY="$OPENROUTER_API_KEY"
+fi
+
+if [[ -z "${PIFRICTION_OPENROUTER_API_KEY:-}" && -z "${PIFRICTION_ANTHROPIC_API_KEY:-}" ]]; then
+  echo "Missing an OpenRouter or Anthropic API key." >&2
+  echo "Export OPENROUTER_API_KEY or ANTHROPIC_API_KEY (or add one to .env), then run this script again." >&2
   exit 1
 fi
 
