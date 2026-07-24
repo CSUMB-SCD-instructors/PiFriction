@@ -26,6 +26,8 @@ Commands:
 /plan-help            Show planning mode help
 /guided               Toggle guided coding mode
 /guided-help          Show guided coding mode help
+/detective            Toggle Change Detective review mode
+/detective-help       Show Change Detective mode help
 ```
 
 Example:
@@ -34,6 +36,17 @@ Example:
 I have this error: ... What does it mean?
 Hey, I'm running into an issue in @src/main.py. Can you look at it for me?
 ```
+
+## Change Detective mode
+
+Use `/detective` for an agentic code-review exercise. Pi can inspect and search the project, and it can propose edits, but the extension pauses every concrete `edit` or `write` request before it reaches disk.
+
+For each candidate change, the student chooses:
+
+1. **Looks good** — Pi must retry the exact same reviewed change before it can apply it.
+2. **Something is wrong** — the student identifies a mismatch, missing case, broken invariant, boundary problem, or other concern. Pi evaluates the diagnosis, explains it, and proposes a corrected candidate for another review.
+
+Pi is instructed to treat changes as potentially flawed and may occasionally offer a plausible but flawed review candidate. If a student approves a deliberately flawed candidate, it explains the missed issue and does **not** apply it in this beta. Shell commands are disabled so changes cannot bypass the review gate.
 
 ## Planning mode
 

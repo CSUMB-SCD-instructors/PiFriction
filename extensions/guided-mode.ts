@@ -109,6 +109,7 @@ function setEnabled(next: boolean, ctx: ExtensionContext, pi: ExtensionAPI): voi
     // then install guided mode's read/explore set.
     pi.events.emit("chat:set-enabled", { enabled: false });
     pi.events.emit("plan:set-enabled", { enabled: false });
+    pi.events.emit("detective:set-enabled", { enabled: false });
     setExploreTools(pi);
     setGuidedHeader(ctx);
     ctx.ui.notify("Guided coding enabled. Pi handles one small implementation unit at a time and checks your explanation before editing.", "info");

@@ -88,6 +88,7 @@ function setEnabled(next: boolean, ctx: ExtensionContext, pi: ExtensionAPI, noti
     // set last so the final state is read-only.
     pi.events.emit("guided:set-enabled", { enabled: false });
     pi.events.emit("chat:set-enabled", { enabled: false });
+    pi.events.emit("detective:set-enabled", { enabled: false });
     setPlanTools(pi);
     setPlanHeader(ctx);
     if (notify) ctx.ui.notify("Planning mode enabled. Pi can inspect and compare approaches, but cannot edit.", "info");

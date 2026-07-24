@@ -145,6 +145,7 @@ export default function chatMode(pi: ExtensionAPI): void {
       if (enabled) {
         pi.events.emit("guided:set-enabled", { enabled: false });
         pi.events.emit("plan:set-enabled", { enabled: false });
+        pi.events.emit("detective:set-enabled", { enabled: false });
       }
     },
   });
