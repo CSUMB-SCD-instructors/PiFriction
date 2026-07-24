@@ -46,7 +46,7 @@ For each candidate change, the student chooses:
 1. **Looks good** — Pi must retry the exact same reviewed change before it can apply it.
 2. **Something is wrong** — the student identifies a mismatch, missing case, broken invariant, boundary problem, or other concern. Pi evaluates the diagnosis, explains it, and proposes a corrected candidate for another review.
 
-Pi is instructed to treat changes as potentially flawed and may occasionally offer a plausible but flawed review candidate. If a student approves a deliberately flawed candidate, it explains the missed issue and does **not** apply it in this beta. Shell commands are disabled so changes cannot bypass the review gate.
+The extension, rather than the model, randomly schedules fault exercises (`FAULT_EXERCISE_RATE` is currently 35%). When scheduled, Pi receives a hidden directive to make the next first candidate contain one plausible review defect; corrected candidates must be sound. Change Detective forces Pi thinking to `off` for the duration of the mode and restores the prior setting when it exits, so model scratch work and hidden exercise instructions are not exposed. If a student approves a deliberately flawed candidate, it explains the missed issue and does **not** apply it in this beta. Shell commands are disabled so changes cannot bypass the review gate. The mode formats every exact replacement in an `edit` call (including multiple replacements), and blocks `write` against existing files so a localized edit cannot turn into an unreadable whole-file rewrite.
 
 ## Planning mode
 
