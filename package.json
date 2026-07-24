@@ -12,6 +12,7 @@
   "bundledDependencies": ["pi-image-paste"],
   "pi": {
     "extensions": [
+      "./extensions/mode-coordinator.ts",
       "./extensions/chat-mode.ts",
       "./extensions/guided-mode.ts",
       "./extensions/plan-mode.ts",

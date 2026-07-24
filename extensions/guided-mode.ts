@@ -100,22 +100,16 @@ function updateUi(ctx: ExtensionContext): void {
   ]);
 }
 
-function setEnabled(next: boolean, ctx: ExtensionContext, pi: ExtensionAPI): void {
+function setEnabled(next: boolean, ctx: ExtensionContext, pi: ExtensionAPI, notify = true): void {
   enabled = next;
   phase = "idle";
 
   if (enabled) {
-    // Chat mode owns the restrictive tutoring-only tool set. Tell it to yield,
-    // then install guided mode's read/explore set.
-    pi.events.emit("chat:set-enabled", { enabled: false });
-    pi.events.emit("plan:set-enabled", { enabled: false });
-    pi.events.emit("detective:set-enabled", { enabled: false });
     setExploreTools(pi);
     setGuidedHeader(ctx);
     ctx.ui.notify("Guided coding enabled. Pi handles one small implementation unit at a time and checks your explanation before editing.", "info");
-  } else {
-    ctx.ui.notify("Guided coding disabled. Returning to chat mode.", "info");
-    pi.events.emit("chat:set-enabled", { enabled: true });
+  } else if (notify) {
+    ctx.ui.notify("Guided coding disabled.", "info");
   }
 
   updateUi(ctx);
@@ -128,15 +122,19 @@ export default function guidedMode(pi: ExtensionAPI): void {
     default: false,
   });
 
-  pi.events.on("guided:set-enabled", (data: { enabled?: boolean }) => {
-    if (activeContext && Boolean(data.enabled) !== enabled) {
-      setEnabled(Boolean(data.enabled), activeContext, pi);
+  pi.events.on("pifriction:mode:activate", (event: { mode: string }) => {
+    if (activeContext) setEnabled(event.mode === "guided", activeContext, pi, false);
+  });
+
+  pi.events.on("pifriction:mode:blocked", (event: { requestedMode: string; assignedMode: string }) => {
+    if (activeContext && event.requestedMode === "guided") {
+      activeContext.ui.notify(`This session is locked to ${event.assignedMode} mode.`, "warning");
     }
   });
 
   pi.registerCommand("guided", {
-    description: "Toggle guided coding: inspect, explain-back, then implementation",
-    handler: async (_args, ctx) => setEnabled(!enabled, ctx, pi),
+    description: "Switch to guided coding: inspect, explain-back, then implementation",
+    handler: async (_args, _ctx) => pi.events.emit("pifriction:mode:request", { mode: "guided", source: "student" }),
   });
 
   pi.registerCommand("guided-help", {
@@ -177,13 +175,9 @@ export default function guidedMode(pi: ExtensionAPI): void {
   pi.on("session_start", (_event, ctx) => {
     activeContext = ctx;
     phase = "idle";
-
-    if (pi.getFlag("guided")) {
-      setEnabled(true, ctx, pi);
-    } else {
-      enabled = false;
-      updateUi(ctx);
-    }
+    const state: { mode?: string } = {};
+    pi.events.emit("pifriction:mode:get-state", state);
+    setEnabled(state.mode === "guided", ctx, pi, false);
   });
 
   pi.on("input", async (event, ctx) => {

@@ -124,29 +124,28 @@ export default function chatMode(pi: ExtensionAPI): void {
     default: true,
   });
 
-  pi.on("session_start", (_event, ctx) => {
-    activeContext = ctx;
-    enabled = Boolean(pi.getFlag("chat"));
-    allowedFilesForCurrentPrompt = new Set();
-    if (enabled) setChatTools(pi);
-    updateUi(ctx);
-
-    setChatHeader(ctx);
+  pi.events.on("pifriction:mode:activate", (event: { mode: string }) => {
+    if (activeContext) setEnabled(event.mode === "chat", activeContext, pi, false);
   });
 
-  pi.events.on("chat:set-enabled", (data: { enabled?: boolean }) => {
-    if (activeContext) setEnabled(Boolean(data.enabled), activeContext, pi, false);
+  pi.events.on("pifriction:mode:blocked", (event: { requestedMode: string; assignedMode: string }) => {
+    if (activeContext && event.requestedMode === "chat") {
+      activeContext.ui.notify(`This session is locked to ${event.assignedMode} mode.`, "warning");
+    }
+  });
+
+  pi.on("session_start", (_event, ctx) => {
+    activeContext = ctx;
+    allowedFilesForCurrentPrompt = new Set();
+    const state: { mode?: string } = {};
+    pi.events.emit("pifriction:mode:get-state", state);
+    setEnabled(state.mode === "chat", ctx, pi, false);
   });
 
   pi.registerCommand("chat", {
-    description: "Toggle classroom chat mode",
+    description: "Switch to classroom chat mode",
     handler: async (_args, ctx) => {
-      setEnabled(!enabled, ctx, pi);
-      if (enabled) {
-        pi.events.emit("guided:set-enabled", { enabled: false });
-        pi.events.emit("plan:set-enabled", { enabled: false });
-        pi.events.emit("detective:set-enabled", { enabled: false });
-      }
+      pi.events.emit("pifriction:mode:request", { mode: "chat", source: "student" });
     },
   });
 

@@ -38,4 +38,12 @@ fi
 
 # Load this package every time without relying on mutable user settings. This
 # keeps the classroom extension active even if students mount a persistent .pi.
-exec pi -e /opt/pifriction --model "$PIFRICTION_MODEL" "$@"
+args=()
+if [[ -n "${PIFRICTION_MODE:-}" ]]; then
+  args+=(--assigned-mode "$PIFRICTION_MODE")
+fi
+if [[ "${PIFRICTION_MODE_LOCK:-}" == "1" || "${PIFRICTION_MODE_LOCK:-}" == "true" ]]; then
+  args+=(--lock-mode)
+fi
+
+exec pi -e /opt/pifriction --model "$PIFRICTION_MODEL" "${args[@]}" "$@"

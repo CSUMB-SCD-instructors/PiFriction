@@ -84,11 +84,6 @@ function setEnabled(next: boolean, ctx: ExtensionContext, pi: ExtensionAPI, noti
   phase = "idle";
 
   if (enabled) {
-    // Other modes may restore their own tools while yielding; install the plan
-    // set last so the final state is read-only.
-    pi.events.emit("guided:set-enabled", { enabled: false });
-    pi.events.emit("chat:set-enabled", { enabled: false });
-    pi.events.emit("detective:set-enabled", { enabled: false });
     setPlanTools(pi);
     setPlanHeader(ctx);
     if (notify) ctx.ui.notify("Planning mode enabled. Pi can inspect and compare approaches, but cannot edit.", "info");
@@ -106,15 +101,19 @@ export default function planMode(pi: ExtensionAPI): void {
     default: false,
   });
 
-  pi.events.on("plan:set-enabled", (data: { enabled?: boolean }) => {
-    if (activeContext && Boolean(data.enabled) !== enabled) {
-      setEnabled(Boolean(data.enabled), activeContext, pi, false);
+  pi.events.on("pifriction:mode:activate", (event: { mode: string }) => {
+    if (activeContext) setEnabled(event.mode === "plan", activeContext, pi, false);
+  });
+
+  pi.events.on("pifriction:mode:blocked", (event: { requestedMode: string; assignedMode: string }) => {
+    if (activeContext && event.requestedMode === "plan") {
+      activeContext.ui.notify(`This session is locked to ${event.assignedMode} mode.`, "warning");
     }
   });
 
   pi.registerCommand("plan", {
-    description: "Toggle read-only project planning mode",
-    handler: async (_args, ctx) => setEnabled(!enabled, ctx, pi),
+    description: "Switch to read-only project planning mode",
+    handler: async (_args, _ctx) => pi.events.emit("pifriction:mode:request", { mode: "plan", source: "student" }),
   });
 
   pi.registerCommand("plan-help", {
@@ -145,7 +144,7 @@ export default function planMode(pi: ExtensionAPI): void {
       enabled = false;
       phase = "idle";
       updateUi(ctx);
-      pi.events.emit("guided:set-enabled", { enabled: true });
+      pi.events.emit("pifriction:mode:request", { mode: "guided", source: "student" });
 
       return {
         content: [{ type: "text", text: "The chosen approach has been handed to guided coding mode. Continue with one small implementation unit at a time; do not implement the entire plan at once." }],
@@ -157,13 +156,9 @@ export default function planMode(pi: ExtensionAPI): void {
   pi.on("session_start", (_event, ctx) => {
     activeContext = ctx;
     phase = "idle";
-
-    if (pi.getFlag("plan")) {
-      setEnabled(true, ctx, pi);
-    } else {
-      enabled = false;
-      updateUi(ctx);
-    }
+    const state: { mode?: string } = {};
+    pi.events.emit("pifriction:mode:get-state", state);
+    setEnabled(state.mode === "plan", ctx, pi, false);
   });
 
   pi.on("input", async (event, ctx) => {

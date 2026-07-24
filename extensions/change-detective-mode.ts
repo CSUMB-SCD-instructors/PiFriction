@@ -92,9 +92,6 @@ function setEnabled(next: boolean, ctx: ExtensionContext, pi: ExtensionAPI, noti
     // scratch work or exposing the hidden exercise directive.
     pi.setThinkingLevel("off");
 
-    pi.events.emit("chat:set-enabled", { enabled: false });
-    pi.events.emit("plan:set-enabled", { enabled: false });
-    pi.events.emit("guided:set-enabled", { enabled: false });
     setDetectiveTools(pi);
     setDetectiveHeader(ctx);
     if (notify) ctx.ui.notify("Change Detective enabled. Every file change requires your review.", "info");
@@ -103,10 +100,7 @@ function setEnabled(next: boolean, ctx: ExtensionContext, pi: ExtensionAPI, noti
       pi.setThinkingLevel(thinkingLevelBeforeDetective);
       thinkingLevelBeforeDetective = undefined;
     }
-    if (notify) {
-      ctx.ui.notify("Change Detective disabled. Returning to chat mode.", "info");
-      pi.events.emit("chat:set-enabled", { enabled: true });
-    }
+    if (notify) ctx.ui.notify("Change Detective disabled.", "info");
   }
 
   updateUi(ctx);
@@ -119,15 +113,19 @@ export default function changeDetectiveMode(pi: ExtensionAPI): void {
     default: false,
   });
 
-  pi.events.on("detective:set-enabled", (data: { enabled?: boolean }) => {
-    if (activeContext && Boolean(data.enabled) !== enabled) {
-      setEnabled(Boolean(data.enabled), activeContext, pi, false);
+  pi.events.on("pifriction:mode:activate", (event: { mode: string }) => {
+    if (activeContext) setEnabled(event.mode === "detective", activeContext, pi, false);
+  });
+
+  pi.events.on("pifriction:mode:blocked", (event: { requestedMode: string; assignedMode: string }) => {
+    if (activeContext && event.requestedMode === "detective") {
+      activeContext.ui.notify(`This session is locked to ${event.assignedMode} mode.`, "warning");
     }
   });
 
   pi.registerCommand("detective", {
-    description: "Toggle Change Detective mode: review every file change",
-    handler: async (_args, ctx) => setEnabled(!enabled, ctx, pi),
+    description: "Switch to Change Detective mode: review every file change",
+    handler: async (_args, _ctx) => pi.events.emit("pifriction:mode:request", { mode: "detective", source: "student" }),
   });
 
   pi.on("thinking_level_select", (event) => {
@@ -151,13 +149,9 @@ export default function changeDetectiveMode(pi: ExtensionAPI): void {
     soundCorrectionRequired = false;
     faultExerciseForCurrentTurn = false;
     thinkingLevelBeforeDetective = undefined;
-
-    if (pi.getFlag("detective")) {
-      setEnabled(true, ctx, pi);
-    } else {
-      enabled = false;
-      updateUi(ctx);
-    }
+    const state: { mode?: string } = {};
+    pi.events.emit("pifriction:mode:get-state", state);
+    setEnabled(state.mode === "detective", ctx, pi, false);
   });
 
   pi.on("before_agent_start", async (event) => {

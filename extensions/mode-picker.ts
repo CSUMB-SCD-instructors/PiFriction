@@ -15,7 +15,7 @@ export default function modePicker(pi: ExtensionAPI): void {
     // A CLI-selected mode is useful for automation and should not be replaced
     // by a prompt. The picker is for normal interactive starts only.
     if (event.reason !== "startup" || ctx.mode !== "tui") return;
-    if (pi.getFlag("guided") || pi.getFlag("plan")) return;
+    if (pi.getFlag("guided") || pi.getFlag("plan") || pi.getFlag("detective") || pi.getFlag("assigned-mode")) return;
 
     const choice = await ctx.ui.select("Choose a PiFriction mode", [
       "Chat — ask questions; Pi cannot inspect files unless you @mention one, run commands, or edit",
@@ -25,14 +25,14 @@ export default function modePicker(pi: ExtensionAPI): void {
     ]);
 
     if (choice?.startsWith("Change Detective")) {
-      pi.events.emit("detective:set-enabled", { enabled: true });
+      pi.events.emit("pifriction:mode:request", { mode: "detective", source: "picker" });
     } else if (choice?.startsWith("Planning")) {
-      pi.events.emit("plan:set-enabled", { enabled: true });
+      pi.events.emit("pifriction:mode:request", { mode: "plan", source: "picker" });
     } else if (choice?.startsWith("Guided coding")) {
-      pi.events.emit("guided:set-enabled", { enabled: true });
+      pi.events.emit("pifriction:mode:request", { mode: "guided", source: "picker" });
     } else {
       // Cancel/default intentionally means the safer, tutoring-only mode.
-      pi.events.emit("chat:set-enabled", { enabled: true });
+      pi.events.emit("pifriction:mode:request", { mode: "chat", source: "picker" });
     }
   });
 }

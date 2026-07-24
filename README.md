@@ -37,6 +37,33 @@ I have this error: ... What does it mean?
 Hey, I'm running into an issue in @src/main.py. Can you look at it for me?
 ```
 
+## Mode coordinator and assignments
+
+`mode-coordinator.ts` is the single authority for the active PiFriction mode. `/chat`, `/plan`, `/guided`, and `/detective` now request a mode switch from it rather than enabling/disabling one another directly.
+
+For a locally assigned session, set:
+
+```bash
+docker run -it --rm \
+  -v "$PWD":/data \
+  -e PIFRICTION_ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+  -e PIFRICTION_MODE="chat" \
+  -e PIFRICTION_MODE_LOCK="true" \
+  pifriction
+```
+
+Valid modes are `chat`, `plan`, `guided`, and `detective`. With `PIFRICTION_MODE_LOCK=true`, student mode-switch requests are refused. The same controls are available as Pi flags: `--assigned-mode <mode>` and `--lock-mode`.
+
+A future course-policy extension can enforce a remote assignment by emitting:
+
+```ts
+pi.events.emit("pifriction:mode:set-policy", {
+  mode: "chat",
+  locked: true,
+  source: "remote-policy",
+});
+```
+
 ## Change Detective mode
 
 Use `/detective` for an agentic code-review exercise. Pi can inspect and search the project, and it can propose edits, but the extension pauses every concrete `edit` or `write` request before it reaches disk.
