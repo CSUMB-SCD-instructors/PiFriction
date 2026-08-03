@@ -20,8 +20,6 @@ let activeContext: ExtensionContext | undefined;
 let approvedChange: ProposedChange | undefined;
 let faultExerciseForCurrentTurn = false;
 let soundCorrectionRequired = false;
-type ThinkingLevel = Parameters<ExtensionAPI["setThinkingLevel"]>[0];
-let thinkingLevelBeforeDetective: ThinkingLevel | undefined;
 
 function shouldInjectFault(): boolean {
   return Math.random() < FAULT_EXERCISE_RATE;
@@ -85,21 +83,10 @@ function setEnabled(next: boolean, ctx: ExtensionContext, pi: ExtensionAPI, noti
   faultExerciseForCurrentTurn = false;
 
   if (enabled) {
-    if (thinkingLevelBeforeDetective === undefined) {
-      thinkingLevelBeforeDetective = pi.getThinkingLevel();
-    }
-    // The exercise is about reviewing a concrete change, not reading model
-    // scratch work or exposing the hidden exercise directive.
-    pi.setThinkingLevel("off");
-
     setDetectiveTools(pi);
     setDetectiveHeader(ctx);
     if (notify) ctx.ui.notify("Change Detective enabled. Every file change requires your review.", "info");
   } else {
-    if (thinkingLevelBeforeDetective !== undefined) {
-      pi.setThinkingLevel(thinkingLevelBeforeDetective);
-      thinkingLevelBeforeDetective = undefined;
-    }
     if (notify) ctx.ui.notify("Change Detective disabled.", "info");
   }
 
@@ -128,11 +115,6 @@ export default function changeDetectiveMode(pi: ExtensionAPI): void {
     handler: async (_args, _ctx) => pi.events.emit("pifriction:mode:request", { mode: "detective", source: "student" }),
   });
 
-  pi.on("thinking_level_select", (event) => {
-    // Keep hidden planning hidden even if a student changes settings mid-mode.
-    if (enabled && event.level !== "off") pi.setThinkingLevel("off");
-  });
-
   pi.registerCommand("detective-help", {
     description: "Show Change Detective mode help",
     handler: async (_args, ctx) => {
@@ -148,7 +130,6 @@ export default function changeDetectiveMode(pi: ExtensionAPI): void {
     approvedChange = undefined;
     soundCorrectionRequired = false;
     faultExerciseForCurrentTurn = false;
-    thinkingLevelBeforeDetective = undefined;
     const state: { mode?: string } = {};
     pi.events.emit("pifriction:mode:get-state", state);
     setEnabled(state.mode === "detective", ctx, pi, false);
