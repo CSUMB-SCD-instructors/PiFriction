@@ -29,6 +29,10 @@ Commands:
 /guided-help          Show guided coding mode help
 /detective            Toggle Change Detective review mode
 /detective-help       Show Change Detective mode help
+/test-explorer        Switch to read-only Test Explorer mode
+/test-help            Show Test Explorer mode help
+/code-practice        Switch to read-only Code Practice mode
+/code-practice-help   Show Code Practice mode help
 ```
 
 Example:
@@ -64,6 +68,37 @@ pi.events.emit("pifriction:mode:set-policy", {
   source: "remote-policy",
 });
 ```
+
+## Code Practice mode
+
+Use `/code-practice` to practice writing one consequential piece of code without Pi supplying the answer.
+
+1. Name a function or behavior to practice.
+2. Pi presents a short skeleton with exactly one named blank, normally one expression or line.
+3. Submit only the replacement in a fenced C block:
+
+````markdown
+```c
+// BLANK: bounds check
+<your replacement code>
+```
+````
+
+Use **Shift+Enter** for a newline in Pi's editor; triple backticks keep the attempt as code. Pi evaluates semantic correctness, not exact text matching. If an attempt is incomplete, it gives one conceptual scaffold and keeps the same blank active. It never provides the missing code, a completed line/function, or a worked solution—even after repeated attempts or a request for the answer. It can point out small mechanical issues (such as a missing semicolon) but asks the student to make the correction themselves.
+
+Code Practice is read-only: students submit attempts in chat rather than modifying project files.
+
+## Test Explorer mode
+
+Use `/test-explorer` to learn how existing tests specify a function's behavior. The mode is read-only, but can list directories, find test files, search for usages, and read focused excerpts.
+
+1. Name a function or behavior to investigate.
+2. Pi locates relevant direct usages and likely behavior tests, then shows one small test excerpt.
+3. Before Pi explains it, describe the test's **setup**, **action**, **expected result**, and **bug caught**.
+4. If part is unclear, Pi must isolate one unfamiliar assertion, setup line, idiom, or state transition and give only the minimum hint needed.
+5. The student retries the same four-part explanation. Pi must not advance to the next test until they can reason through the current one.
+
+The read-only behavior and scaffold loop are configured near the top of `extensions/test-explorer-mode.ts`.
 
 ## Change Detective mode
 

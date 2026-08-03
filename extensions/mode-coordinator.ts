@@ -1,6 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-export const PIFRICTION_MODES = ["chat", "plan", "guided", "detective", "test-explorer"] as const;
+export const PIFRICTION_MODES = ["chat", "plan", "guided", "detective", "test-explorer", "code-practice"] as const;
 export type PiFrictionMode = (typeof PIFRICTION_MODES)[number];
 type ModeSource = "startup" | "student" | "picker" | "instructor" | "remote-policy";
 
@@ -14,6 +14,7 @@ const MODE_CHOICES: Array<{ mode: PiFrictionMode; label: string }> = [
   { mode: "guided", label: "Guided coding — explain one small unit before Pi edits it" },
   { mode: "detective", label: "Change Detective — review every proposed concrete edit" },
   { mode: "test-explorer", label: "Test Explorer — read tests one at a time and predict their behavior" },
+  { mode: "code-practice", label: "Code Practice — write one small named code blank yourself" },
 ];
 
 function isMode(value: string): value is PiFrictionMode {
@@ -32,7 +33,7 @@ export default function modeCoordinator(pi: ExtensionAPI): void {
   }
 
   pi.registerFlag("assigned-mode", {
-    description: "Assign PiFriction mode: chat, plan, guided, detective, or test-explorer",
+    description: "Assign PiFriction mode: chat, plan, guided, detective, test-explorer, or code-practice",
     type: "string",
   });
   pi.registerFlag("lock-mode", {
@@ -138,9 +139,11 @@ export default function modeCoordinator(pi: ExtensionAPI): void {
     }
 
     // Explicit individual mode flags remain useful for scripts.
-    const flaggedMode: PiFrictionMode = pi.getFlag("test-explorer")
-      ? "test-explorer"
-      : pi.getFlag("detective")
+    const flaggedMode: PiFrictionMode = pi.getFlag("code-practice")
+      ? "code-practice"
+      : pi.getFlag("test-explorer")
+        ? "test-explorer"
+        : pi.getFlag("detective")
         ? "detective"
         : pi.getFlag("plan")
           ? "plan"
